@@ -108,7 +108,7 @@ public sealed class CommercetoolsCustomerAuthTests : IDisposable
     }
 
     [Fact]
-    public async Task GetMeAsync_maps_customer_profile()
+    public async Task GetMeAsync_maps_customer_profile_and_sends_customer_bearer()
     {
         _server.Given(Request.Create().WithPath("/demo/me").UsingGet())
             .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json")
@@ -122,13 +122,72 @@ public sealed class CommercetoolsCustomerAuthTests : IDisposable
                 }
                 """));
 
-        var result = await _auth.GetMeAsync("any-access-token", CancellationToken.None);
+        var result = await _auth.GetMeAsync("the-customer-token", CancellationToken.None);
 
         result.IsSuccess.ShouldBeTrue();
         result.Value.Id.Value.ShouldBe("cust-2");
         result.Value.Email.ShouldBe("grace@x.com");
         result.Value.Addresses.Count.ShouldBe(1);
         result.Value.Addresses[0].City.ShouldBe("NYC");
+
+        // The /me call must carry the caller's customer token as the bearer, not the service token.
+        AuthorizationHeader("/demo/me").ShouldBe("Bearer the-customer-token");
+    }
+
+    [Fact]
+    public async Task MergeAnonymousCartAsync_posts_to_me_login_with_anonymous_id_and_customer_bearer()
+    {
+        _server.Given(Request.Create().WithPath("/demo/me/login").UsingPost())
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json")
+                .WithBody("""{ "customer": { "id": "cust-3" } }"""));
+
+        var session = new CustomerSession(
+            AccessToken: "merge-token",
+            RefreshToken: "ref",
+            ExpiresAt: DateTimeOffset.UtcNow.AddHours(1),
+            CustomerId: new Mach.Domain.ValueObjects.CustomerId("cust-3"),
+            AnonymousId: "guest-7");
+
+        var result = await _auth.MergeAnonymousCartAsync("guest-7", session, CancellationToken.None);
+
+        result.IsSuccess.ShouldBeTrue();
+
+        var entry = _server.LogEntries.Last(e => e.RequestMessage!.Path == "/demo/me/login");
+        var body = entry.RequestMessage!.Body ?? string.Empty;
+
+        // The login body must carry the anonymousId and request a merge of the active cart.
+        body.ShouldContain("\"anonymousId\":\"guest-7\"");
+        body.ShouldContain("MergeWithExistingCustomerCart");
+
+        // The merge is authenticated with the customer's bearer token.
+        AuthorizationHeader("/demo/me/login").ShouldBe("Bearer merge-token");
+    }
+
+    [Fact]
+    public async Task MergeAnonymousCartAsync_rejects_mismatched_anonymous_id()
+    {
+        var session = new CustomerSession(
+            AccessToken: "merge-token",
+            RefreshToken: "ref",
+            ExpiresAt: DateTimeOffset.UtcNow.AddHours(1),
+            CustomerId: new Mach.Domain.ValueObjects.CustomerId("cust-3"),
+            AnonymousId: "guest-7");
+
+        var result = await _auth.MergeAnonymousCartAsync("a-different-guest", session, CancellationToken.None);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Code.ShouldBe("validation");
+
+        // No /me/login call should have been made for a mismatched anonymous id.
+        _server.LogEntries.ShouldNotContain(e => e.RequestMessage!.Path == "/demo/me/login");
+    }
+
+    /// <summary>Read the Authorization header value the server received for the latest request to <paramref name="path"/>.</summary>
+    private string AuthorizationHeader(string path)
+    {
+        var entry = _server.LogEntries.Last(e => e.RequestMessage!.Path == path);
+        var headers = entry.RequestMessage!.Headers!;
+        return headers["Authorization"].ToString();
     }
 
     public void Dispose()

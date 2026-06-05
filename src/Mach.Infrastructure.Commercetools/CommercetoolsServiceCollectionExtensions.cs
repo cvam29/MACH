@@ -22,6 +22,12 @@ public static class CommercetoolsServiceCollectionExtensions
     /// <summary>The named <see cref="HttpClient"/> used for the raw OAuth2 token flows.</summary>
     public const string TokenHttpClientName = "Commercetools.Auth";
 
+    /// <summary>
+    /// The named <see cref="HttpClient"/> used for the customer-token <c>/me</c> API path, where the
+    /// caller's bearer token (not the service client-credentials token) authenticates the request.
+    /// </summary>
+    public const string CustomerApiHttpClientName = "Commercetools.CustomerApi";
+
     public static IServiceCollection AddCommercetools(
         this IServiceCollection services, IConfiguration config)
     {
@@ -60,6 +66,11 @@ public static class CommercetoolsServiceCollectionExtensions
         services.AddHttpClient(TokenHttpClientName)
             .AddStandardResilienceHandler();
 
+        // Customer-token API path for /me and /me/login, with the same resilience handler as the
+        // service path. The bearer token is set per request from the caller's access token.
+        services.AddHttpClient(CustomerApiHttpClientName)
+            .AddStandardResilienceHandler();
+
         services.AddSingleton<CommercetoolsTokenClient>(sp =>
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
@@ -67,11 +78,18 @@ public static class CommercetoolsServiceCollectionExtensions
             return new CommercetoolsTokenClient(httpClient, sp.GetRequiredService<IOptions<CommercetoolsOptions>>());
         });
 
+        services.AddSingleton<CommercetoolsCustomerApiClient>(sp =>
+        {
+            var factory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = factory.CreateClient(CustomerApiHttpClientName);
+            return new CommercetoolsCustomerApiClient(httpClient, sp.GetRequiredService<IOptions<CommercetoolsOptions>>());
+        });
+
         services.AddSingleton<ICommerceClient, CommercetoolsCommerceClient>();
         services.AddSingleton<ICustomerAuth>(sp => new CommercetoolsCustomerAuth(
             sp.GetRequiredService<CommercetoolsTokenClient>(),
             sp.GetRequiredService<commercetools.Sdk.Api.Client.ProjectApiRoot>(),
-            sp.GetRequiredService<IOptions<CommercetoolsOptions>>()));
+            sp.GetRequiredService<CommercetoolsCustomerApiClient>()));
 
         return services;
     }

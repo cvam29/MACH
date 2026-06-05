@@ -1,5 +1,4 @@
 using commercetools.Sdk.Api.Client;
-using commercetools.Sdk.Api.Models.Customers;
 using commercetools.Sdk.Api.Models.Me;
 
 using Mach.Application.Dtos;
@@ -8,29 +7,29 @@ using Mach.Domain;
 using Mach.Domain.Auth;
 using Mach.Domain.ValueObjects;
 
-using Microsoft.Extensions.Options;
-
 namespace Mach.Infrastructure.Commercetools;
 
 /// <summary>
 /// commercetools-backed implementation of <see cref="ICustomerAuth"/>. Token acquisition
 /// (password / anonymous / refresh) is handled by <see cref="CommercetoolsTokenClient"/> against the
-/// OAuth2 endpoints; profile reads and the anonymous→customer cart merge use the SDK request DSL.
+/// OAuth2 endpoints; registration uses the service-credentialed SDK request DSL, while the
+/// customer-scoped <c>/me</c> reads and the anonymous→customer cart merge go through the
+/// <see cref="CommercetoolsCustomerApiClient"/> so they carry the <em>caller's</em> bearer token.
 /// </summary>
 public sealed class CommercetoolsCustomerAuth : ICustomerAuth
 {
     private readonly CommercetoolsTokenClient _tokens;
     private readonly ProjectApiRoot _builder;
-    private readonly CommercetoolsMapper _mapper;
+    private readonly CommercetoolsCustomerApiClient _customerApi;
 
     internal CommercetoolsCustomerAuth(
         CommercetoolsTokenClient tokens,
         ProjectApiRoot builder,
-        IOptions<CommercetoolsOptions> options)
+        CommercetoolsCustomerApiClient customerApi)
     {
         _tokens = tokens;
         _builder = builder;
-        _mapper = new CommercetoolsMapper(options.Value.DefaultLocale);
+        _customerApi = customerApi;
     }
 
     public async Task<Result<CustomerSession>> RegisterAsync(RegisterRequest request, CancellationToken ct)
@@ -93,49 +92,25 @@ public sealed class CommercetoolsCustomerAuth : ICustomerAuth
     public Task<Result<CustomerSession>> AnonymousSessionAsync(CancellationToken ct)
         => _tokens.AnonymousAsync(ct);
 
-    public async Task<Result<CustomerDto>> GetMeAsync(string accessToken, CancellationToken ct)
-    {
-        try
-        {
-            // /me is resolved against the caller's access token rather than the service client.
-            var customer = await _builder.Me().Get().ExecuteAsync(ct);
-            return Result.Success(_mapper.MapCustomer(customer));
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<CustomerDto>(CommercetoolsErrorTranslator.Translate(ex));
-        }
-    }
+    public Task<Result<CustomerDto>> GetMeAsync(string accessToken, CancellationToken ct)
+        // /me is resolved against the caller's customer bearer token, not the service client.
+        => _customerApi.GetMeAsync(accessToken, ct);
 
-    public async Task<Result> MergeAnonymousCartAsync(
+    public Task<Result> MergeAnonymousCartAsync(
         string anonymousId, CustomerSession customerSession, CancellationToken ct)
     {
-        try
+        // The customer's access token authenticates the call; /me/login folds the active
+        // (anonymous-session) cart into the customer's cart, merging quantities. commercetools
+        // resolves the guest cart from the bearer token's anonymous session, so the explicit
+        // anonymousId is validated against the session before the call is made.
+        if (!string.IsNullOrEmpty(anonymousId)
+            && customerSession.AnonymousId is not null
+            && !string.Equals(anonymousId, customerSession.AnonymousId, StringComparison.Ordinal))
         {
-            // The customer's access token authenticates the call; /me/login folds the active
-            // (anonymous-session) cart into the customer's cart, merging quantities. commercetools
-            // resolves the guest cart from the bearer token's anonymous session, so the explicit
-            // anonymousId is validated against the session and used for diagnostics.
-            if (string.IsNullOrEmpty(anonymousId)
-                || string.Equals(anonymousId, customerSession.AnonymousId, StringComparison.Ordinal)
-                || customerSession.AnonymousId is null)
-            {
-                var signin = new MyCustomerSignin
-                {
-                    ActiveCartSignInMode = IAnonymousCartSignInMode.MergeWithExistingCustomerCart,
-                    UpdateProductData = true,
-                };
-
-                await _builder.Me().Login().Post(signin).ExecuteAsync(ct);
-                return Result.Success();
-            }
-
-            return Result.Failure(Error.Validation(
-                "The supplied anonymous id does not match the customer session's anonymous id."));
+            return Task.FromResult(Result.Failure(Error.Validation(
+                "The supplied anonymous id does not match the customer session's anonymous id.")));
         }
-        catch (Exception ex)
-        {
-            return Result.Failure(CommercetoolsErrorTranslator.Translate(ex));
-        }
+
+        return _customerApi.LoginAsync(customerSession.AccessToken, anonymousId, ct);
     }
 }
