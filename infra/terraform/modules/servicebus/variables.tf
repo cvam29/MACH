@@ -28,7 +28,7 @@ variable "topics" {
   default = {
     payments      = ["projection"]
     catalog       = ["indexer"]
-    content       = ["indexer"]
+    content       = ["indexer-content"]
     notifications = ["notifications"]
   }
 }
