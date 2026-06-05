@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Mach.Infrastructure.Commercetools.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="commercetools.Sdk.Api" />
     <PackageReference Include="commercetools.Base.Client" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />

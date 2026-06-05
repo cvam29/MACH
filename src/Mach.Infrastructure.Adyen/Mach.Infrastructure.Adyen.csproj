@@ -2,6 +2,11 @@
 
   <ItemGroup>
     <PackageReference Include="Adyen" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mach.Infrastructure.Adyen.Tests" />
   </ItemGroup>
 
   <ItemGroup>

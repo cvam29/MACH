@@ -2,6 +2,7 @@ using Azure.Monitor.OpenTelemetry.Exporter;
 using Mach.Application;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -25,6 +26,10 @@ public static class ServiceDefaultsExtensions
     public static IServiceCollection AddServiceDefaults(
         this IServiceCollection services, IConfiguration configuration)
     {
+        // The ambient clock as an injectable dependency — services depend on TimeProvider instead
+        // of DateTimeOffset.UtcNow, so expiry/timestamp logic is deterministically testable.
+        services.TryAddSingleton(TimeProvider.System);
+
         services.AddApplication();
         services.AddObservability(configuration);
         services.AddDefaultHealthChecks();

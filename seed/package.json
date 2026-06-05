@@ -1,0 +1,37 @@
+{
+  "name": "@mach/seed",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Idempotent seed-data loaders for the MACH commerce demo (commercetools, Algolia, Contentstack, SQL fulfillment).",
+  "type": "module",
+  "engines": {
+    "node": ">=24",
+    "npm": ">=11"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "eslint .",
+    "seed:commercetools": "tsx commercetools/seed-commercetools.ts",
+    "seed:algolia": "tsx algolia/seed-algolia.ts",
+    "seed:contentstack": "tsx contentstack/seed-contentstack.ts",
+    "seed:sql": "tsx sql/seed-fulfillment.ts",
+    "seed:all": "tsx scripts/seed-all.ts",
+    "replay:adyen": "tsx scripts/replay-adyen-notification.ts"
+  },
+  "dependencies": {
+    "@commercetools/platform-sdk": "^7.18.0",
+    "@commercetools/sdk-client-v2": "^2.5.0",
+    "algoliasearch": "^4.24.0",
+    "dotenv": "^16.4.5",
+    "mssql": "^11.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "@types/mssql": "^9.1.5",
+    "@types/node": "^22.5.0",
+    "eslint": "^9.9.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.2.0"
+  }
+}

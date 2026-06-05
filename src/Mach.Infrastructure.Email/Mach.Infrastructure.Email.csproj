@@ -2,7 +2,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Azure.Communication.Email" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mach.Infrastructure.Email.Tests" />
   </ItemGroup>
 
   <ItemGroup>

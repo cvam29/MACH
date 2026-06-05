@@ -1,0 +1,106 @@
+// =============================================================================================
+// MACH — Application Insights / Log Analytics KQL
+// =============================================================================================
+// Telemetry source: OpenTelemetry (Azure.Monitor.OpenTelemetry.Exporter) wired in
+// Mach.ServiceDefaults. HTTP server spans -> requests; outbound HTTP (vendor) and Service Bus
+// -> dependencies; logs -> traces; exceptions -> exceptions. The W3C traceparent maps to
+// operation_Id / operation_ParentId, so a single shopper action stitches across sync + async hops.
+//
+// Role names: every host defaults to cloud_RoleName == "mach" (OTEL_SERVICE_NAME is unset). Set
+// OTEL_SERVICE_NAME per host (e.g. "mach-bff", "mach-projection") to split by service below.
+//
+// NOTE: This build instruments HttpClient + manual Service Bus Activity correlation. There are no
+// custom metrics yet (no Meter/Counter), so webhook latency and reindex visibility are derived
+// from requests/dependencies rather than customMetrics.
+// =============================================================================================
+
+
+// ---------------------------------------------------------------------------------------------
+// 1. End-to-end trace for one operation (paste an operation_Id, e.g. from a response header).
+//    Shows every request, vendor dependency, log and exception on that distributed trace, in order.
+// ---------------------------------------------------------------------------------------------
+let opId = "<operation_Id>";
+union
+    (requests     | where operation_Id == opId | extend kind = "request",    label = name,   ok = success, ms = duration),
+    (dependencies | where operation_Id == opId | extend kind = "dependency", label = strcat(type, " ", target, " ", name), ok = success, ms = duration),
+    (traces       | where operation_Id == opId | extend kind = "trace",      label = message, ok = true,    ms = real(null)),
+    (exceptions   | where operation_Id == opId | extend kind = "exception",  label = strcat(type, ": ", outerMessage), ok = false, ms = real(null))
+| project timestamp, kind, ok, ms, label, cloud_RoleName, operation_ParentId, id
+| order by timestamp asc
+
+
+// ---------------------------------------------------------------------------------------------
+// 2. Vendor dependency latency (p50 / p95 / p99) by target — commercetools, Contentstack,
+//    Algolia, Adyen, Azure Maps. The "swap a vendor, watch its latency" tile.
+// ---------------------------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(1h)
+| where type in ("HTTP", "Http")
+| summarize calls = count(),
+            p50 = percentile(duration, 50),
+            p95 = percentile(duration, 95),
+            p99 = percentile(duration, 99),
+            failures = countif(success == false)
+        by target
+| extend failureRatePct = round(100.0 * failures / calls, 2)
+| order by p95 desc
+
+
+// ---------------------------------------------------------------------------------------------
+// 3. Dependency failure rate over time by vendor target (5-minute bins). Spot a flaky vendor.
+// ---------------------------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(6h) and type in ("HTTP", "Http")
+| summarize total = count(), failures = countif(success == false) by bin(timestamp, 5m), target
+| extend failureRatePct = round(100.0 * failures / total, 2)
+| project timestamp, target, failureRatePct
+| render timechart
+
+
+// ---------------------------------------------------------------------------------------------
+// 4. Webhook ingress latency + outcome — Adyen / commercetools / Contentstack hooks.
+//    Derived from the inbound HTTP request (the fast-ACK path), split by hook.
+// ---------------------------------------------------------------------------------------------
+requests
+| where timestamp > ago(6h)
+| where url has "/hooks/" or name has "hooks"
+| extend hook = extract(@"/hooks/([a-z]+)", 1, url)
+| summarize count(),
+            p50 = percentile(duration, 50),
+            p95 = percentile(duration, 95),
+            success_rate = round(100.0 * countif(success) / count(), 2)
+        by hook = coalesce(hook, name)
+| order by p95 desc
+
+
+// ---------------------------------------------------------------------------------------------
+// 5. Async hops — Service Bus publish/consume dependencies. Confirms the event-driven chain
+//    (payments/notifications/catalog/content) is flowing and shows broker latency.
+// ---------------------------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(1h)
+| where type has "Queue" or type has "ServiceBus" or target has "servicebus" or name has_any ("payments","notifications","catalog","content")
+| summarize messages = count(), p95 = percentile(duration, 95), failures = countif(success == false)
+        by name, target, cloud_RoleName
+| order by messages desc
+
+
+// ---------------------------------------------------------------------------------------------
+// 6. Exceptions over time by role and type — the error feed.
+// ---------------------------------------------------------------------------------------------
+exceptions
+| where timestamp > ago(6h)
+| summarize count() by bin(timestamp, 15m), cloud_RoleName, problemId = strcat(type)
+| render timechart
+
+
+// ---------------------------------------------------------------------------------------------
+// 7. BFF request volume + p95 latency by route — top storefront endpoints.
+// ---------------------------------------------------------------------------------------------
+requests
+| where timestamp > ago(1h)
+| summarize count(), p50 = percentile(duration, 50), p95 = percentile(duration, 95),
+            errorRatePct = round(100.0 * countif(success == false) / count(), 2)
+        by operation_Name
+| order by count_ desc
+| take 25

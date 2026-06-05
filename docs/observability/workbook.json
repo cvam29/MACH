@@ -1,0 +1,134 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# MACH — Composability & Reliability\n\nEnd-to-end view across the seven Function hosts and the four vendors. Telemetry is OpenTelemetry exported to Application Insights (see `Mach.ServiceDefaults`). Set `OTEL_SERVICE_NAME` per host to split `cloud_RoleName`."
+      },
+      "name": "title"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "9f1d2a00-0000-0000-0000-000000000001",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time range",
+            "type": 4,
+            "isRequired": true,
+            "value": { "durationMs": 3600000 },
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 900000 },
+                { "durationMs": 3600000 },
+                { "durationMs": 21600000 },
+                { "durationMs": 86400000 }
+              ]
+            }
+          }
+        ]
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## Vendor dependency latency (p50/p95/p99)" },
+      "name": "text-vendors"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "dependencies\n| where type in (\"HTTP\", \"Http\")\n| summarize calls = count(), p50 = percentile(duration, 50), p95 = percentile(duration, 95), p99 = percentile(duration, 99), failures = countif(success == false) by target\n| extend failureRatePct = round(100.0 * failures / calls, 2)\n| order by p95 desc",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "timeContext": { "durationMs": 3600000 },
+      "timeContextFromParameter": "TimeRange",
+      "name": "q-vendor-latency"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## Dependency failure rate over time (by vendor)" },
+      "name": "text-failures"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "dependencies\n| where type in (\"HTTP\", \"Http\")\n| summarize total = count(), failures = countif(success == false) by bin(timestamp, 5m), target\n| extend failureRatePct = round(100.0 * failures / total, 2)\n| project timestamp, target, failureRatePct",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart"
+      },
+      "timeContext": { "durationMs": 3600000 },
+      "timeContextFromParameter": "TimeRange",
+      "name": "q-failure-rate"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## Webhook ingress latency & success (Adyen / commercetools / Contentstack)" },
+      "name": "text-webhooks"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "requests\n| where url has \"/hooks/\" or name has \"hooks\"\n| extend hook = extract(@\"/hooks/([a-z]+)\", 1, url)\n| summarize count(), p50 = percentile(duration, 50), p95 = percentile(duration, 95), success_rate = round(100.0 * countif(success) / count(), 2) by hook = coalesce(hook, name)\n| order by p95 desc",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "timeContext": { "durationMs": 3600000 },
+      "timeContextFromParameter": "TimeRange",
+      "name": "q-webhooks"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## Async hops — Service Bus publish/consume (payments / notifications / catalog / content)" },
+      "name": "text-async"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "dependencies\n| where type has \"Queue\" or type has \"ServiceBus\" or target has \"servicebus\" or name has_any (\"payments\",\"notifications\",\"catalog\",\"content\")\n| summarize messages = count(), p95 = percentile(duration, 95), failures = countif(success == false) by name, target, cloud_RoleName\n| order by messages desc",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "timeContext": { "durationMs": 3600000 },
+      "timeContextFromParameter": "TimeRange",
+      "name": "q-async"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## BFF request volume & p95 latency by route" },
+      "name": "text-requests"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "requests\n| summarize count(), p50 = percentile(duration, 50), p95 = percentile(duration, 95), errorRatePct = round(100.0 * countif(success == false) / count(), 2) by operation_Name\n| order by count_ desc\n| take 25",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "timeContext": { "durationMs": 3600000 },
+      "timeContextFromParameter": "TimeRange",
+      "name": "q-requests"
+    }
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
