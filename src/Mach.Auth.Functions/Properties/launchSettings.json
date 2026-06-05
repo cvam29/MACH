@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Mach.Auth.Functions": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7070",
+      "launchBrowser": false
+    }
+  }
+}

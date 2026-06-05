@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Algolia.Search" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mach.Application\Mach.Application.csproj" />
+    <ProjectReference Include="..\Mach.Domain\Mach.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

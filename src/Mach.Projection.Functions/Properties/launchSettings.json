@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Mach.Projection.Functions": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7073",
+      "launchBrowser": false
+    }
+  }
+}

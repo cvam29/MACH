@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Mach.Outbox.Functions": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7076",
+      "launchBrowser": false
+    }
+  }
+}

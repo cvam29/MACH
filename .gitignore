@@ -1,0 +1,61 @@
+# ---- .NET ----
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+.vs/
+artifacts/
+project.lock.json
+*.nupkg
+*.snupkg
+TestResults/
+coverage*.xml
+*.coverage
+*.coveragexml
+
+# ---- Azure Functions ----
+local.settings.json
+.azurefunctions/
+
+# ---- Node / Next.js ----
+node_modules/
+.next/
+out/
+.pnpm-store/
+npm-debug.log*
+yarn-error.log*
+.turbo/
+
+# ---- Terraform ----
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# keep example tfvars, ignore the rest
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# ---- Local secrets / env / dev sinks ----
+.env
+.env.*
+!.env.example
+mail/
+*.eml
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

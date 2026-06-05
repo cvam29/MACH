@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Azure.Identity" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mach.Application\Mach.Application.csproj" />
+    <ProjectReference Include="..\Mach.Domain\Mach.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

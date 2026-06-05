@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="TngTech.ArchUnitNET.xUnit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Mach.Domain\Mach.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Application\Mach.Application.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Contracts\Mach.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Mach.ServiceDefaults\Mach.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Infrastructure.Commercetools\Mach.Infrastructure.Commercetools.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Infrastructure.Contentstack\Mach.Infrastructure.Contentstack.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Infrastructure.Algolia\Mach.Infrastructure.Algolia.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Infrastructure.Adyen\Mach.Infrastructure.Adyen.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Infrastructure.Email\Mach.Infrastructure.Email.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Infrastructure.Maps\Mach.Infrastructure.Maps.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Infrastructure.Messaging\Mach.Infrastructure.Messaging.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Persistence\Mach.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Auth.Functions\Mach.Auth.Functions.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Bff.Functions\Mach.Bff.Functions.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Webhooks.Functions\Mach.Webhooks.Functions.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Projection.Functions\Mach.Projection.Functions.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Indexer.Functions\Mach.Indexer.Functions.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Notifications.Functions\Mach.Notifications.Functions.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Outbox.Functions\Mach.Outbox.Functions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
