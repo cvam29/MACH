@@ -20,7 +20,7 @@ public sealed class OutboxTests(SqlServerFixture fixture, ITestOutputHelper outp
         }
 
         await using var db = fixture.CreateContext();
-        var writer = new OutboxWriter(db);
+        var writer = new OutboxWriter(db, TimeProvider.System);
 
         await writer.EnqueueAsync("orders.placed", new SampleEvent("o-1", 10m), CancellationToken.None);
         await writer.EnqueueAsync("orders.placed", new SampleEvent("o-2", 20m), CancellationToken.None);
@@ -31,7 +31,7 @@ public sealed class OutboxTests(SqlServerFixture fixture, ITestOutputHelper outp
         await db.SaveChangesAsync(CancellationToken.None);
 
         await using var readDb = fixture.CreateContext();
-        var reader = new OutboxReader(readDb);
+        var reader = new OutboxReader(readDb, TimeProvider.System);
         var batch = await reader.GetUnsentAsync(10, CancellationToken.None);
 
         batch.Count.ShouldBeGreaterThanOrEqualTo(2);
@@ -54,11 +54,11 @@ public sealed class OutboxTests(SqlServerFixture fixture, ITestOutputHelper outp
         }
 
         await using var db = fixture.CreateContext();
-        var writer = new OutboxWriter(db);
+        var writer = new OutboxWriter(db, TimeProvider.System);
         await writer.EnqueueAsync("topic.x", new SampleEvent("mark-sent", 1m), CancellationToken.None);
         await db.SaveChangesAsync(CancellationToken.None);
 
-        var reader = new OutboxReader(db);
+        var reader = new OutboxReader(db, TimeProvider.System);
         var unsent = await reader.GetUnsentAsync(50, CancellationToken.None);
         var target = unsent.Single(m => m.Payload.Contains("mark-sent"));
 
@@ -77,11 +77,11 @@ public sealed class OutboxTests(SqlServerFixture fixture, ITestOutputHelper outp
         }
 
         await using var db = fixture.CreateContext();
-        var writer = new OutboxWriter(db);
+        var writer = new OutboxWriter(db, TimeProvider.System);
         await writer.EnqueueAsync("topic.fail", new SampleEvent("mark-fail", 1m), CancellationToken.None);
         await db.SaveChangesAsync(CancellationToken.None);
 
-        var reader = new OutboxReader(db);
+        var reader = new OutboxReader(db, TimeProvider.System);
         var target = (await reader.GetUnsentAsync(50, CancellationToken.None))
             .Single(m => m.Payload.Contains("mark-fail"));
 

@@ -78,7 +78,10 @@ public static class CommercetoolsServiceCollectionExtensions
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
             var httpClient = factory.CreateClient(TokenHttpClientName);
-            return new CommercetoolsTokenClient(httpClient, sp.GetRequiredService<IOptions<CommercetoolsOptions>>());
+            return new CommercetoolsTokenClient(
+                httpClient,
+                sp.GetRequiredService<IOptions<CommercetoolsOptions>>(),
+                sp.GetService<TimeProvider>() ?? TimeProvider.System);
         });
 
         // Builds customer-scoped ProjectApiRoot instances via the SDK ClientBuilder, reusing the SDK's

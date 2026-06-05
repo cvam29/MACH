@@ -9,7 +9,7 @@ namespace Mach.Persistence.Repositories;
 /// unit of work. The row is added to the tracked <see cref="MachDbContext"/> but NOT saved —
 /// it is persisted when the caller commits its own transaction (transactional outbox).
 /// </summary>
-internal sealed class OutboxWriter(MachDbContext db) : IOutboxWriter
+internal sealed class OutboxWriter(MachDbContext db, TimeProvider time) : IOutboxWriter
 {
     public Task EnqueueAsync<TEvent>(string topic, TEvent @event, CancellationToken ct)
         where TEvent : notnull
@@ -19,7 +19,7 @@ internal sealed class OutboxWriter(MachDbContext db) : IOutboxWriter
         var row = new OutboxMessageEntity
         {
             Id = SequentialGuid.NewGuid(),
-            OccurredUtc = DateTimeOffset.UtcNow,
+            OccurredUtc = time.GetUtcNow(),
             Topic = topic,
             Type = @event.GetType().FullName ?? @event.GetType().Name,
             Payload = JsonSerializer.Serialize(@event, MachJson.Options),

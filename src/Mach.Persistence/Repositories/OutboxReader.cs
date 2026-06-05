@@ -6,7 +6,7 @@ namespace Mach.Persistence.Repositories;
 /// <summary>
 /// Reads and acknowledges <c>messaging.OutboxMessages</c> rows for the dispatcher.
 /// </summary>
-internal sealed class OutboxReader(MachDbContext db) : IOutboxReader
+internal sealed class OutboxReader(MachDbContext db, TimeProvider time) : IOutboxReader
 {
     public async Task<IReadOnlyList<OutboxMessage>> GetUnsentAsync(int batchSize, CancellationToken ct)
     {
@@ -29,7 +29,7 @@ internal sealed class OutboxReader(MachDbContext db) : IOutboxReader
             return;
         }
 
-        row.ProcessedUtc = DateTimeOffset.UtcNow;
+        row.ProcessedUtc = time.GetUtcNow();
         row.Error = null;
         await db.SaveChangesAsync(ct);
     }

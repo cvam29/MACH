@@ -10,19 +10,12 @@ namespace Mach.Indexer.Functions.Indexing;
 /// search index so any drift accumulated from missed/duplicated change events is corrected.
 /// Free of trigger types so it can be unit-tested with fakes.
 /// </summary>
-public sealed class CatalogReconciler
+public sealed class CatalogReconciler(
+    ICommerceClient commerce, ISearchClient search, ILogger<CatalogReconciler> logger)
 {
-    private readonly ICommerceClient _commerce;
-    private readonly ISearchClient _search;
-    private readonly ILogger<CatalogReconciler> _logger;
-
-    public CatalogReconciler(
-        ICommerceClient commerce, ISearchClient search, ILogger<CatalogReconciler> logger)
-    {
-        _commerce = commerce ?? throw new ArgumentNullException(nameof(commerce));
-        _search = search ?? throw new ArgumentNullException(nameof(search));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ICommerceClient _commerce = commerce;
+    private readonly ISearchClient _search = search;
+    private readonly ILogger<CatalogReconciler> _logger = logger;
 
     /// <summary>
     /// Walks every category, resolves the distinct products beneath them, builds search records and

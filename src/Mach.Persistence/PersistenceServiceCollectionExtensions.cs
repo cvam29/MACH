@@ -2,6 +2,7 @@ using Mach.Application.Ports;
 using Mach.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Mach.Persistence;
 
@@ -19,6 +20,10 @@ public static class PersistenceServiceCollectionExtensions
         services.AddDbContext<MachDbContext>(options =>
             options.UseSqlServer(connectionString, sql =>
                 sql.MigrationsAssembly(typeof(MachDbContext).Assembly.FullName)));
+
+        // Self-contained clock so the stores resolve a TimeProvider even when AddServiceDefaults
+        // is not in play (e.g. integration tests that wire only persistence).
+        services.TryAddSingleton(TimeProvider.System);
 
         services.AddScoped<IOutboxWriter, OutboxWriter>();
         services.AddScoped<IOutboxReader, OutboxReader>();

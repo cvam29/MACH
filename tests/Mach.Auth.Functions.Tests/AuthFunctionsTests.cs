@@ -17,7 +17,7 @@ namespace Mach.Auth.Functions.Tests;
 public sealed class AuthFunctionsTests
 {
     private static AuthFunctions Create(ICustomerAuth auth)
-        => new(auth, new AuthCookieWriter(Options.Create(new AuthCookieOptions())),
+        => new(auth, new AuthCookieWriter(Options.Create(new AuthCookieOptions()), TimeProvider.System),
             NullLogger<AuthFunctions>.Instance);
 
     private static HttpRequest JsonRequest(string body)

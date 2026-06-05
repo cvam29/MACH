@@ -9,7 +9,7 @@ namespace Mach.Auth.Functions;
 /// Builds and applies the session cookies (<c>mach_at</c> / <c>mach_rt</c>). Tokens live ONLY in
 /// these cookies, never in the JSON body. All cookies are HttpOnly, Secure, SameSite=Lax, Path=/.
 /// </summary>
-public sealed class AuthCookieWriter(IOptions<AuthCookieOptions> options)
+public sealed class AuthCookieWriter(IOptions<AuthCookieOptions> options, TimeProvider time)
 {
     private readonly AuthCookieOptions _options = options.Value;
 
@@ -19,7 +19,7 @@ public sealed class AuthCookieWriter(IOptions<AuthCookieOptions> options)
 
     /// <summary>Builds the refresh-token cookie options (a longer window than the access token).</summary>
     public CookieOptions BuildRefreshCookieOptions()
-        => Build(DateTimeOffset.UtcNow.Add(_options.RefreshCookieLifetime));
+        => Build(time.GetUtcNow().Add(_options.RefreshCookieLifetime));
 
     /// <summary>Builds the options used to expire/clear a cookie.</summary>
     public CookieOptions BuildClearCookieOptions()

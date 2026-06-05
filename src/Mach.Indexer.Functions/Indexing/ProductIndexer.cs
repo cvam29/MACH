@@ -11,30 +11,21 @@ namespace Mach.Indexer.Functions.Indexing;
 /// <see cref="ProductChanged"/> / <see cref="ContentChanged"/> events so it is fully unit-testable
 /// with fake ports.
 /// </summary>
-public sealed class ProductIndexer
+public sealed class ProductIndexer(
+    ICommerceClient commerce,
+    ISearchClient search,
+    ICmsClient cms,
+    CacheInvalidator cacheInvalidator,
+    ILogger<ProductIndexer> logger)
 {
     /// <summary>Content type whose entries enrich a product (PDP marketing copy), keyed by product slug.</summary>
     private const string PdpMarketingContentType = "pdp_marketing_block";
 
-    private readonly ICommerceClient _commerce;
-    private readonly ISearchClient _search;
-    private readonly ICmsClient _cms;
-    private readonly CacheInvalidator _cacheInvalidator;
-    private readonly ILogger<ProductIndexer> _logger;
-
-    public ProductIndexer(
-        ICommerceClient commerce,
-        ISearchClient search,
-        ICmsClient cms,
-        CacheInvalidator cacheInvalidator,
-        ILogger<ProductIndexer> logger)
-    {
-        _commerce = commerce ?? throw new ArgumentNullException(nameof(commerce));
-        _search = search ?? throw new ArgumentNullException(nameof(search));
-        _cms = cms ?? throw new ArgumentNullException(nameof(cms));
-        _cacheInvalidator = cacheInvalidator ?? throw new ArgumentNullException(nameof(cacheInvalidator));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ICommerceClient _commerce = commerce;
+    private readonly ISearchClient _search = search;
+    private readonly ICmsClient _cms = cms;
+    private readonly CacheInvalidator _cacheInvalidator = cacheInvalidator;
+    private readonly ILogger<ProductIndexer> _logger = logger;
 
     /// <summary>
     /// Reacts to a <see cref="ProductChanged"/> event: re-index (Created/Updated) or remove

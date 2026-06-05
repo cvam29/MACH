@@ -10,7 +10,7 @@ namespace Mach.Persistence.Repositories;
 /// primary-key violation means another caller already claimed the key, so the existing
 /// state is returned.
 /// </summary>
-internal sealed class IdempotencyStore(MachDbContext db) : IIdempotencyStore
+internal sealed class IdempotencyStore(MachDbContext db, TimeProvider time) : IIdempotencyStore
 {
     private static readonly TimeSpan DefaultTtl = TimeSpan.FromHours(24);
 
@@ -18,7 +18,7 @@ internal sealed class IdempotencyStore(MachDbContext db) : IIdempotencyStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
-        var now = DateTimeOffset.UtcNow;
+        var now = time.GetUtcNow();
         var entity = new IdempotencyKeyEntity
         {
             Key = key,

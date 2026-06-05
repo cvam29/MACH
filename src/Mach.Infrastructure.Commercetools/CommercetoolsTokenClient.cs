@@ -17,7 +17,8 @@ namespace Mach.Infrastructure.Commercetools;
 /// </summary>
 internal sealed class CommercetoolsTokenClient(
     HttpClient httpClient,
-    IOptions<CommercetoolsOptions> options)
+    IOptions<CommercetoolsOptions> options,
+    TimeProvider time)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -99,7 +100,7 @@ internal sealed class CommercetoolsTokenClient(
             var session = new CustomerSession(
                 AccessToken: token.AccessToken,
                 RefreshToken: token.RefreshToken ?? carriedRefreshToken ?? string.Empty,
-                ExpiresAt: DateTimeOffset.UtcNow.AddSeconds(token.ExpiresIn),
+                ExpiresAt: time.GetUtcNow().AddSeconds(token.ExpiresIn),
                 CustomerId: null,
                 AnonymousId: anonymous ? token.AnonymousId : null);
 

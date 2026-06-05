@@ -2,32 +2,35 @@ using Microsoft.AspNetCore.Http;
 
 namespace Mach.Bff.Functions;
 
-/// <summary>Small helpers shared by the BFF HTTP functions.</summary>
+/// <summary>Small helpers shared by the BFF HTTP functions (C# 14 extension members).</summary>
 public static class HttpRequestExtensions
 {
-    /// <summary>
-    /// Reads and deserializes the JSON request body, returning <c>default</c> when the body is
-    /// missing or malformed (callers treat that as a validation failure).
-    /// </summary>
-    public static async Task<T?> ReadJsonAsync<T>(this HttpRequest request, CancellationToken ct)
+    extension(HttpRequest request)
     {
-        try
+        /// <summary>
+        /// Reads and deserializes the JSON request body, returning <c>default</c> when the body is
+        /// missing or malformed (callers treat that as a validation failure).
+        /// </summary>
+        public async Task<T?> ReadJsonAsync<T>(CancellationToken ct)
         {
-            return await request.ReadFromJsonAsync<T>(ct).ConfigureAwait(false);
+            try
+            {
+                return await request.ReadFromJsonAsync<T>(ct).ConfigureAwait(false);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return default;
+            }
         }
-        catch (System.Text.Json.JsonException)
-        {
-            return default;
-        }
+
+        /// <summary>Reads a single query value, or null when absent/empty.</summary>
+        public string? QueryValue(string key)
+            => request.Query.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value)
+                ? value.ToString()
+                : null;
+
+        /// <summary>Reads an integer query value with a fallback default.</summary>
+        public int QueryInt(string key, int fallback)
+            => int.TryParse(request.QueryValue(key), out var value) ? value : fallback;
     }
-
-    /// <summary>Reads a single query value, or null when absent/empty.</summary>
-    public static string? Query(this HttpRequest request, string key)
-        => request.Query.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value)
-            ? value.ToString()
-            : null;
-
-    /// <summary>Reads an integer query value with a fallback default.</summary>
-    public static int QueryInt(this HttpRequest request, string key, int fallback)
-        => int.TryParse(request.Query(key), out var value) ? value : fallback;
 }

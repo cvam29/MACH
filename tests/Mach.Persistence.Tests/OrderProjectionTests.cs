@@ -39,11 +39,11 @@ public sealed class OrderProjectionTests(SqlServerFixture fixture, ITestOutputHe
         var customerId = $"cust-{Guid.NewGuid():N}";
 
         await using var db = fixture.CreateContext();
-        var store = new OrderProjectionStore(db);
+        var store = new OrderProjectionStore(db, TimeProvider.System);
         await store.UpsertAsync(SampleOrder(orderId, customerId, OrderStatus.Paid, 25m), CancellationToken.None);
 
         await using var readDb = fixture.CreateContext();
-        var readStore = new OrderProjectionStore(readDb);
+        var readStore = new OrderProjectionStore(readDb, TimeProvider.System);
         var fetched = await readStore.GetByIdAsync(new OrderId(orderId), CancellationToken.None);
 
         fetched.ShouldNotBeNull();
@@ -68,7 +68,7 @@ public sealed class OrderProjectionTests(SqlServerFixture fixture, ITestOutputHe
         var customerId = $"cust-{Guid.NewGuid():N}";
 
         await using var db = fixture.CreateContext();
-        var store = new OrderProjectionStore(db);
+        var store = new OrderProjectionStore(db, TimeProvider.System);
         await store.UpsertAsync(SampleOrder(orderId, customerId, OrderStatus.Pending, 25m), CancellationToken.None);
 
         // Update: status changes to Shipped, single replaced line.
@@ -85,11 +85,11 @@ public sealed class OrderProjectionTests(SqlServerFixture fixture, ITestOutputHe
             CreatedAt: DateTimeOffset.UtcNow);
 
         await using var db2 = fixture.CreateContext();
-        var store2 = new OrderProjectionStore(db2);
+        var store2 = new OrderProjectionStore(db2, TimeProvider.System);
         await store2.UpsertAsync(updated, CancellationToken.None);
 
         await using var readDb = fixture.CreateContext();
-        var readStore = new OrderProjectionStore(readDb);
+        var readStore = new OrderProjectionStore(readDb, TimeProvider.System);
         var fetched = await readStore.GetByIdAsync(new OrderId(orderId), CancellationToken.None);
 
         fetched.ShouldNotBeNull();
@@ -112,13 +112,13 @@ public sealed class OrderProjectionTests(SqlServerFixture fixture, ITestOutputHe
         var other = $"cust-{Guid.NewGuid():N}";
 
         await using var db = fixture.CreateContext();
-        var store = new OrderProjectionStore(db);
+        var store = new OrderProjectionStore(db, TimeProvider.System);
         await store.UpsertAsync(SampleOrder($"ord-{Guid.NewGuid():N}", customerId, OrderStatus.Paid, 10m), CancellationToken.None);
         await store.UpsertAsync(SampleOrder($"ord-{Guid.NewGuid():N}", customerId, OrderStatus.Paid, 20m), CancellationToken.None);
         await store.UpsertAsync(SampleOrder($"ord-{Guid.NewGuid():N}", other, OrderStatus.Paid, 30m), CancellationToken.None);
 
         await using var readDb = fixture.CreateContext();
-        var readStore = new OrderProjectionStore(readDb);
+        var readStore = new OrderProjectionStore(readDb, TimeProvider.System);
         var mine = await readStore.GetByCustomerAsync(new CustomerId(customerId), CancellationToken.None);
 
         mine.Count.ShouldBe(2);

@@ -44,8 +44,8 @@ public sealed class CatalogFunctions(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "search")] HttpRequest request,
         CancellationToken ct)
     {
-        var q = request.Query("q");
-        var category = request.Query("category");
+        var q = request.QueryValue("q");
+        var category = request.QueryValue("category");
         var page = Math.Max(1, request.QueryInt("page", 1));
         const int pageSize = 24;
 

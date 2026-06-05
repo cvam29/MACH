@@ -20,13 +20,13 @@ public sealed class IdempotencyTests(SqlServerFixture fixture, ITestOutputHelper
         var key = $"idem-{Guid.NewGuid():N}";
 
         await using var db1 = fixture.CreateContext();
-        var store1 = new IdempotencyStore(db1);
+        var store1 = new IdempotencyStore(db1, TimeProvider.System);
         var first = await store1.TryBeginAsync(key, CancellationToken.None);
         first.ShouldBe(IdempotencyState.Began);
 
         // Second caller on a fresh context loses the race.
         await using var db2 = fixture.CreateContext();
-        var store2 = new IdempotencyStore(db2);
+        var store2 = new IdempotencyStore(db2, TimeProvider.System);
         var second = await store2.TryBeginAsync(key, CancellationToken.None);
         second.ShouldBe(IdempotencyState.InProgress);
     }
@@ -40,7 +40,7 @@ public sealed class IdempotencyTests(SqlServerFixture fixture, ITestOutputHelper
         }
 
         await using var db = fixture.CreateContext();
-        var store = new IdempotencyStore(db);
+        var store = new IdempotencyStore(db, TimeProvider.System);
 
         var record = await store.GetExistingAsync($"missing-{Guid.NewGuid():N}", CancellationToken.None);
         record.ShouldBeNull();
@@ -57,14 +57,14 @@ public sealed class IdempotencyTests(SqlServerFixture fixture, ITestOutputHelper
         var key = $"idem-{Guid.NewGuid():N}";
 
         await using var db = fixture.CreateContext();
-        var store = new IdempotencyStore(db);
+        var store = new IdempotencyStore(db, TimeProvider.System);
 
         (await store.TryBeginAsync(key, CancellationToken.None)).ShouldBe(IdempotencyState.Began);
 
         await store.CompleteWithAsync(key, "{\"ok\":true}", CancellationToken.None);
 
         await using var verifyDb = fixture.CreateContext();
-        var verifyStore = new IdempotencyStore(verifyDb);
+        var verifyStore = new IdempotencyStore(verifyDb, TimeProvider.System);
         var record = await verifyStore.GetExistingAsync(key, CancellationToken.None);
 
         record.ShouldNotBeNull();
@@ -73,7 +73,7 @@ public sealed class IdempotencyTests(SqlServerFixture fixture, ITestOutputHelper
 
         // A later TryBegin must observe the completed state, not re-Begin.
         await using var dbLate = fixture.CreateContext();
-        var storeLate = new IdempotencyStore(dbLate);
+        var storeLate = new IdempotencyStore(dbLate, TimeProvider.System);
         (await storeLate.TryBeginAsync(key, CancellationToken.None)).ShouldBe(IdempotencyState.Completed);
     }
 }

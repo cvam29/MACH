@@ -7,16 +7,10 @@ namespace Mach.Indexer.Functions.Indexing;
 /// Evicts the BFF's cache-aside entries by logical prefix when an upstream change event arrives.
 /// Kept free of Service Bus types so it is unit-testable with a fake <see cref="ICacheStore"/>.
 /// </summary>
-public sealed class CacheInvalidator
+public sealed class CacheInvalidator(ICacheStore cache, ILogger<CacheInvalidator> logger)
 {
-    private readonly ICacheStore _cache;
-    private readonly ILogger<CacheInvalidator> _logger;
-
-    public CacheInvalidator(ICacheStore cache, ILogger<CacheInvalidator> logger)
-    {
-        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ICacheStore _cache = cache;
+    private readonly ILogger<CacheInvalidator> _logger = logger;
 
     /// <summary>
     /// Invalidate everything affected by a product change: the product-detail entry and any

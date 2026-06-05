@@ -4,6 +4,7 @@ using Mach.Domain.ValueObjects;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 using Shouldly;
 
@@ -11,8 +12,11 @@ namespace Mach.Auth.Functions.Tests;
 
 public sealed class AuthCookieWriterTests
 {
+    // A fixed clock so cookie-expiry timestamps are asserted exactly.
+    private static readonly DateTimeOffset Now = new(2026, 6, 5, 12, 0, 0, TimeSpan.Zero);
+
     private static AuthCookieWriter CreateWriter(AuthCookieOptions? options = null)
-        => new(Options.Create(options ?? new AuthCookieOptions()));
+        => new(Options.Create(options ?? new AuthCookieOptions()), new FakeTimeProvider(Now));
 
     private static CustomerSession Session(
         string access = "access-token",
@@ -68,7 +72,8 @@ public sealed class AuthCookieWriterTests
         var refreshOpts = writer.BuildRefreshCookieOptions();
 
         refreshOpts.Expires.ShouldNotBeNull();
-        refreshOpts.Expires!.Value.ShouldBeGreaterThan(DateTimeOffset.UtcNow.AddDays(29));
+        // Exact: fixed clock + 30-day lifetime (deterministic via the injected TimeProvider).
+        refreshOpts.Expires!.Value.ShouldBe(Now.AddDays(30));
     }
 
     [Fact]

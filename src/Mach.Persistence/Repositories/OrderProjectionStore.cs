@@ -11,14 +11,14 @@ namespace Mach.Persistence.Repositories;
 /// CQRS read-model store backed by <c>orders.OrderProjections</c> /
 /// <c>orders.OrderLineProjections</c>. Maps to and from <see cref="OrderDto"/>.
 /// </summary>
-internal sealed class OrderProjectionStore(MachDbContext db) : IOrderProjectionStore
+internal sealed class OrderProjectionStore(MachDbContext db, TimeProvider time) : IOrderProjectionStore
 {
     public async Task UpsertAsync(OrderDto order, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(order);
 
         var orderId = order.Id.Value;
-        var now = DateTimeOffset.UtcNow;
+        var now = time.GetUtcNow();
 
         var existing = await db.OrderProjections
             .Include(x => x.Lines)

@@ -2,6 +2,7 @@ using Mach.Domain.Auth;
 using Mach.Infrastructure.Commercetools;
 
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 using Shouldly;
 
@@ -13,7 +14,11 @@ namespace Mach.Infrastructure.Commercetools.Tests;
 
 public sealed class CommercetoolsTokenClientTests : IDisposable
 {
+    // A fixed clock so token-expiry timestamps are asserted exactly, not "greater than now".
+    private static readonly DateTimeOffset Now = new(2026, 6, 5, 12, 0, 0, TimeSpan.Zero);
+
     private readonly WireMockServer _auth;
+    private readonly FakeTimeProvider _time = new(Now);
     private readonly CommercetoolsTokenClient _client;
 
     public CommercetoolsTokenClientTests()
@@ -28,7 +33,7 @@ public sealed class CommercetoolsTokenClientTests : IDisposable
             ApiUrl = "http://localhost/api",
             AuthUrl = _auth.Url!,
         });
-        _client = new CommercetoolsTokenClient(new HttpClient(), options);
+        _client = new CommercetoolsTokenClient(new HttpClient(), options, _time);
     }
 
     [Fact]
@@ -45,7 +50,8 @@ public sealed class CommercetoolsTokenClientTests : IDisposable
         result.IsSuccess.ShouldBeTrue();
         result.Value.AccessToken.ShouldBe("acc-1");
         result.Value.RefreshToken.ShouldBe("ref-1");
-        result.Value.ExpiresAt.ShouldBeGreaterThan(DateTimeOffset.UtcNow);
+        // expires_in 172800s from the fixed clock — deterministic thanks to the injected TimeProvider.
+        result.Value.ExpiresAt.ShouldBe(Now.AddSeconds(172800));
         result.Value.AnonymousId.ShouldBeNull();
     }
 
