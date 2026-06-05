@@ -11,11 +11,19 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Mach.Application\Mach.Application.csproj" />
+    <ProjectReference Include="..\Mach.Contracts\Mach.Contracts.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Algolia\Mach.Infrastructure.Algolia.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Caching\Mach.Infrastructure.Caching.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Commercetools\Mach.Infrastructure.Commercetools.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Contentstack\Mach.Infrastructure.Contentstack.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Messaging\Mach.Infrastructure.Messaging.csproj" />
     <ProjectReference Include="..\Mach.ServiceDefaults\Mach.ServiceDefaults.csproj" />
   </ItemGroup>
 

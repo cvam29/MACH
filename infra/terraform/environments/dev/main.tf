@@ -134,6 +134,20 @@ module "maps" {
   depends_on = [module.keyvault]
 }
 
+module "redis" {
+  source = "../../modules/redis"
+
+  name                = module.naming.names.redis
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+  sku_name            = "Standard"
+  key_vault_id        = module.keyvault.id
+  tags                = module.naming.tags
+
+  # Redis writes its connection string into Key Vault; the admin role assignment must exist first.
+  depends_on = [module.keyvault]
+}
+
 # --- Function Apps (per-host or consolidated) ---
 module "functions" {
   source   = "../../modules/functions"
@@ -155,6 +169,8 @@ module "functions" {
     "ServiceBus__FullyQualified" = module.servicebus.namespace_endpoint
     "Sql__ConnectionString"      = module.sql.ado_net_connection_string
     "Maps__KeyVaultSecretUri"    = module.maps.key_secret_uri
+    # Redis connection string resolved at runtime from Key Vault via the app's managed identity:
+    "Cache__ConnectionString" = "@Microsoft.KeyVault(SecretUri=${module.redis.connection_string_secret_uri})"
     # Vendor secrets resolved at runtime from Key Vault via the app's managed identity:
     "Commercetools__ClientSecret"   = "@Microsoft.KeyVault(SecretUri=${module.keyvault.secret_uris["commercetools-client-secret"]})"
     "Contentstack__ManagementToken" = "@Microsoft.KeyVault(SecretUri=${module.keyvault.secret_uris["contentstack-management-token"]})"

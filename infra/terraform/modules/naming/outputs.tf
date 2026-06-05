@@ -22,6 +22,7 @@ output "names" {
     communication        = "acs-${local.base}"
     email_service        = "acse-${local.base}"
     maps                 = "maps-${local.base}"
+    redis                = "redis-${local.base}"
     apim                 = "apim-${local.base}"
     service_plan         = "asp-${local.base}"
     function_app_prefix  = "func-${local.base}" # callers append "-<host>"

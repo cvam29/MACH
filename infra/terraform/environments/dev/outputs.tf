@@ -33,6 +33,16 @@ output "apim_gateway_url" {
   value       = module.apim.gateway_url
 }
 
+output "redis_hostname" {
+  description = "Azure Cache for Redis hostname."
+  value       = module.redis.hostname
+}
+
+output "redis_connection_string_secret_uri" {
+  description = "Key Vault secret URI holding the Redis connection string."
+  value       = module.redis.connection_string_secret_uri
+}
+
 output "function_app_hostnames" {
   description = "Map of function app key -> default hostname."
   value       = { for k, m in module.functions : k => m.default_hostname }

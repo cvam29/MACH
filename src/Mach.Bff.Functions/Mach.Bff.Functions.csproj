@@ -16,7 +16,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Mach.Application\Mach.Application.csproj" />
+    <ProjectReference Include="..\Mach.Contracts\Mach.Contracts.csproj" />
     <ProjectReference Include="..\Mach.ServiceDefaults\Mach.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Commercetools\Mach.Infrastructure.Commercetools.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Contentstack\Mach.Infrastructure.Contentstack.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Maps\Mach.Infrastructure.Maps.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Adyen\Mach.Infrastructure.Adyen.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Caching\Mach.Infrastructure.Caching.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Messaging\Mach.Infrastructure.Messaging.csproj" />
+    <ProjectReference Include="..\Mach.Persistence\Mach.Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>
