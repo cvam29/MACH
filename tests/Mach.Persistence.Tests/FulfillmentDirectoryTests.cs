@@ -1,6 +1,7 @@
 using Mach.Domain.ValueObjects;
 using Mach.Persistence.Entities;
 using Mach.Persistence.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
@@ -18,6 +19,13 @@ public sealed class FulfillmentDirectoryTests(SqlServerFixture fixture, ITestOut
     private async Task<(Guid amsId, Guid berId, Guid madId, Guid supId)> SeedAsync()
     {
         await using var db = fixture.CreateContext();
+
+        // Isolate from other tests in this (sequential) collection: nearest-store searches ALL
+        // stores, and several tests seed stores at identical coordinates, so a stale row could
+        // win a distance tie. Start each test from a clean fulfillment dataset.
+        await db.ProductSuppliers.ExecuteDeleteAsync(CancellationToken.None);
+        await db.Suppliers.ExecuteDeleteAsync(CancellationToken.None);
+        await db.Stores.ExecuteDeleteAsync(CancellationToken.None);
 
         var amsId = Guid.NewGuid();
         var berId = Guid.NewGuid();

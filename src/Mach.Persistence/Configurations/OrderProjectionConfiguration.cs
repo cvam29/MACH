@@ -39,7 +39,10 @@ internal sealed class OrderLineProjectionConfiguration : IEntityTypeConfiguratio
         builder.ToTable("OrderLineProjections", MachSchemas.Orders);
 
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).ValueGeneratedOnAdd();
+        // App-assigned (SequentialGuid) key — NOT store-generated. With ValueGeneratedOnAdd, EF
+        // infers a non-default key means "existing", so replacing a tracked order's lines emits an
+        // UPDATE for the new rows (0 rows affected -> optimistic-concurrency failure) instead of INSERT.
+        builder.Property(x => x.Id).ValueGeneratedNever();
 
         builder.Property(x => x.OrderId).IsRequired().HasMaxLength(128);
         builder.Property(x => x.Sku).IsRequired().HasMaxLength(100);

@@ -132,7 +132,6 @@ namespace Mach.Persistence.Migrations
             modelBuilder.Entity("Mach.Persistence.Entities.OrderLineProjectionEntity", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Currency")

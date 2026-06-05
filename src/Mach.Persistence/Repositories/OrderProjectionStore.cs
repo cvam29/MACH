@@ -32,15 +32,19 @@ internal sealed class OrderProjectionStore(MachDbContext db, TimeProvider time) 
                 PlacedUtc = order.CreatedAt,
             };
             Apply(entity, order, now);
+            entity.Lines = BuildLines(order, orderId);
             db.OrderProjections.Add(entity);
         }
         else
         {
             Apply(existing, order, now);
 
-            // Replace lines wholesale — projection is rebuildable, so simplest is correct.
-            db.OrderLineProjections.RemoveRange(existing.Lines);
-            existing.Lines = BuildLines(order, orderId);
+            // Replace lines wholesale by mutating the tracked collection: clearing orphans the old
+            // rows (required FK + cascade delete) and adding tracks the new ones. Reassigning the
+            // navigation while also calling RemoveRange double-handles the old rows — EF races the
+            // delete against an orphan FK-update, which trips optimistic concurrency on SQL Server.
+            existing.Lines.Clear();
+            existing.Lines.AddRange(BuildLines(order, orderId));
         }
 
         await db.SaveChangesAsync(ct);
