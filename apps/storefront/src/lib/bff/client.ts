@@ -32,6 +32,7 @@ import {
   ProductSchema,
   SearchResultSchema,
   SearchSuggestSchema,
+  StoreListSchema,
   type Cart,
   type Category,
   type ContentEntry,
@@ -45,6 +46,7 @@ import {
   type Product,
   type SearchResult,
   type SearchSuggest,
+  type StoreList,
 } from "@/lib/bff/schemas";
 
 export interface LineItemInput {
@@ -201,6 +203,20 @@ export class BffClient {
       CartSchema,
       { method: "PUT", body: { type }, ...ctx }
     );
+  }
+
+  /* ---------------------------------------------------------- stores --- */
+
+  /** `GET /stores?near=` (pickup locations by distance). */
+  getStores(
+    near: string,
+    ctx: RequestContext = {}
+  ): Promise<StoreList> {
+    return this.http.request("/stores", StoreListSchema, {
+      query: { near },
+      cache: "no-store",
+      ...ctx,
+    });
   }
 
   /* -------------------------------------------------------- checkout --- */

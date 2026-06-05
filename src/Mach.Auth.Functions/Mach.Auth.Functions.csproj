@@ -17,6 +17,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Mach.Application\Mach.Application.csproj" />
     <ProjectReference Include="..\Mach.ServiceDefaults\Mach.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Mach.Infrastructure.Commercetools\Mach.Infrastructure.Commercetools.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mach.Auth.Functions.Tests" />
   </ItemGroup>
 
   <ItemGroup>

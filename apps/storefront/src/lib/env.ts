@@ -18,6 +18,8 @@ export const env = {
   algolia: {
     appId: process.env.NEXT_PUBLIC_ALGOLIA_APP_ID ?? "",
     searchKey: process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY ?? "",
+    /** Primary products index (seeded by the .NET indexer). */
+    indexName: process.env.NEXT_PUBLIC_ALGOLIA_INDEX ?? "products",
   },
   /** Adyen Drop-in client key (public). */
   adyenClientKey: process.env.NEXT_PUBLIC_ADYEN_CLIENT_KEY ?? "",

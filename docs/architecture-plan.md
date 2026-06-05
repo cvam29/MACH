@@ -25,6 +25,7 @@ Build a greenfield, portfolio-grade **MACH** (Microservices, API-first, Cloud-na
 | Search | Algolia (faceted search, autocomplete) |
 | Delivery & geo | Azure Maps (geocoding + distance/route matrix) — **distance-based delivery pricing & ETAs**; delivery types: **standard / express / same-day / store-pickup** (same-day gated by distance) |
 | Transactional email | Azure Communication Services (ACS) Email — **multi-party notifications: customer, store, supplier, reception** (each its own template + recipient); **email copy authored in Contentstack**; local dev sink for offline runs |
+| Caching | **Azure Cache for Redis** (StackExchange.Redis) behind an `ICacheStore` port — cache-aside for catalog/content/profile/delivery-quote reads; in-memory fallback for offline runs. SQL stays the source of truth for durable data |
 | Relational store | SQL Server (LocalDB locally; Azure SQL in IaC) — outbox/inbox/idempotency/order read-model |
 | Cloud platform | APIM, Service Bus, Key Vault, App Insights/Log Analytics, Static Web Apps, Storage |
 | IaC | Terraform (azurerm ~> 4.x) |
@@ -63,7 +64,8 @@ e:\Personal\MACH\
 │  ├─ src/Mach.Domain/              the core rules & types (Money, Order, Cart) — pure, zero dependencies
 │  ├─ src/Mach.Application/          use-cases + "ports" (the wishlist of things it needs done):
 │  │                                 ICommerceClient, ICustomerAuth, ICmsClient, ISearchClient,
-│  │                                 IPaymentGateway, IEmailSender, IGeoLocator, IOutboxWriter, IIdempotencyStore
+│  │                                 IPaymentGateway, IEmailSender, IGeoLocator, ICacheStore,
+│  │                                 IFulfillmentDirectory, IOutboxWriter, IOutboxReader, IIdempotencyStore
 │  │                                 + DeliveryQuoting service (distance-based delivery types)
 │  │                                 + NotificationFanout service (customer/store/supplier/reception)
 │  └─ src/Mach.Contracts/           event messages passed between functions (versioned records)
@@ -76,7 +78,8 @@ e:\Personal\MACH\
 │  ├─ src/Mach.Infrastructure.Email/           talks to ACS Email      (+ local dev sink)
 │  ├─ src/Mach.Infrastructure.Maps/            talks to Azure Maps     (geocode + distance; offline stub)
 │  ├─ src/Mach.Infrastructure.Messaging/       talks to Service Bus    (+ in-memory fallback)
-│  └─ src/Mach.Persistence/                     talks to SQL Server     (EF Core 10, tables, migrations)
+│  ├─ src/Mach.Infrastructure.Caching/         talks to Redis          (cache-aside; in-memory fallback)
+│  └─ src/Mach.Persistence/                     talks to SQL Server     (EF Core 10, tables, migrations, fulfillment dir)
 │
 ├─ 🚪 THE DOORS — Azure Functions apps (each is a deployable unit)
 │  ├─ src/Mach.Auth.Functions/         sign-up / login / refresh / me   (HTTP — commercetools customer auth)
@@ -171,6 +174,7 @@ infra/terraform/
             sql(Azure SQL + AAD admin)  servicebus(topics: payments/catalog/content/notifications + DLQ)
             communication(Azure Communication Services + Email Communication Service + managed domain)
             maps(Azure Maps account — geocoding + route/distance, key in Key Vault)
+            redis(Azure Cache for Redis — cache-aside store, connection string in Key Vault)
             functions(Flex Consumption via functionAppConfig, Linux, dotnet-isolated)
             apim(API defs + policies + named values)  network(optional VNet/private endpoints)
   environments/dev/  (main.tf composition root, variables.tf, terraform.tfvars[non-secret], backend.tf)
@@ -210,14 +214,15 @@ Idempotent scripts, run order **commercetools → Algolia → Contentstack**:
 4. **Vendors:** real sandbox keys in user-secrets / `local.settings.json` (gitignored). Adyen webhooks via dev tunnel/ngrok, or a bundled "replay sample notification" script for fully offline demo.
 5. **Email:** local dev uses a sink (smtp4dev container or an `.eml`-to-`./mail/` writer) selected by `Email:Provider=DevSink`; ACS used only with real keys. The four audience recipients (customer/store/supplier/reception) come from the SQL seed + `Notifications:*` config so all four `.eml` files appear in `./mail/`.
 6. **Maps:** real Azure Maps key in user-secrets, or `Maps:Provider=Stub` (haversine over seeded store lat/lng) so distance-based delivery works fully offline.
-7. **Run:** `func start` per host (distinct ports) + `next dev` against `http://localhost:7071/api` (APIM bypassed locally, BFF CORS for dev). A `run.ps1` orchestrates: Azurite → SB emulator → ef update → hosts → Next.js.
+7. **Cache:** real Redis container (`docker run redis`) with `Cache:Provider=Redis`, or `Cache:Provider=InMemory` so caching works with no Redis. SQL remains the source of truth — caching is purely an accelerator.
+8. **Run:** `func start` per host (distinct ports) + `next dev` against `http://localhost:7071/api` (APIM bypassed locally, BFF CORS for dev). A `run.ps1` orchestrates: Azurite → SB emulator → ef update → hosts → Next.js.
 
 ---
 
 ## Documentation deliverables (portfolio signal)
 
 - **README:** pitch → **C4 Mermaid** (system-context + container) → quickstart → screenshot/GIF → MACH-mapping table.
-- **ADRs (MADR):** MACH rationale · BFF pattern · Algolia browser key · cart = commercetools + Zustand · OIDC/no-secrets CI · Terraform-as-docs · OTel choice · **distance-based delivery & external shipping price on commercetools** · **multi-party notification fan-out (customer/store/supplier/reception)** · **commercetools customer auth as the identity provider (no separate IdP) + httpOnly-cookie session, BFF-introspection vs edge-JWT trade-off**.
+- **ADRs (MADR):** MACH rationale · BFF pattern · Algolia browser key · cart = commercetools + Zustand · OIDC/no-secrets CI · Terraform-as-docs · OTel choice · **distance-based delivery & external shipping price on commercetools** · **multi-party notification fan-out (customer/store/supplier/reception)** · **commercetools customer auth as the identity provider (no separate IdP) + httpOnly-cookie session, BFF-introspection vs edge-JWT trade-off** · **Redis cache-aside (SQL stays source of truth) + invalidation on change events**.
 - **vendor-setup.md:** step-by-step sandbox creation for all four, mapping each to `.env.example` (which keys are public vs secret).
 - **Checkout sequence diagram** (Mermaid) with correlation-id annotations; context/data-ownership map.
 - **demo-script.md:** 3–5 min walkthrough mapped to MACH — Headless (Contentstack home) → API-first + Microservices (Algolia search → PDP with commerce+content) → **sign in via the commercetools-backed Auth microservice (guest cart merges into the customer cart)** → cart → **enter address: delivery types re-price live by distance (Azure Maps), pick same-day vs pickup** → Adyen checkout w/ 3DS test card → **four emails (customer/store/supplier/reception) land in the dev sink, copy authored in Contentstack** (event-driven async proof) → Cloud-native (App Insights Application Map fanning to all vendors + GitHub Actions run + Terraform plan).

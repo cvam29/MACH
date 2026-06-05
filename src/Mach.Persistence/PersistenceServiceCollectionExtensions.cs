@@ -24,6 +24,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IOutboxReader, OutboxReader>();
         services.AddScoped<IIdempotencyStore, IdempotencyStore>();
         services.AddScoped<IOrderProjectionStore, OrderProjectionStore>();
+        services.AddScoped<IFulfillmentDirectory, FulfillmentDirectory>();
 
         return services;
     }

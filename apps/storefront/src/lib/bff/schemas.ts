@@ -146,6 +146,24 @@ export const DeliveryOptionsSchema = z.object({
 });
 export type DeliveryOptions = z.infer<typeof DeliveryOptionsSchema>;
 
+/* --------------------------------------------------------------- stores --- */
+
+export const StoreSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Single-line address for display. */
+  address: z.string().nullable().optional(),
+  distanceKm: z.number().nullable().optional(),
+  /** Human pickup-ready ETA (e.g. "Ready in 2 hours"). */
+  eta: z.string().nullable().optional(),
+});
+export type Store = z.infer<typeof StoreSchema>;
+
+export const StoreListSchema = z.object({
+  stores: z.array(StoreSchema),
+});
+export type StoreList = z.infer<typeof StoreListSchema>;
+
 /* ------------------------------------------------------------- checkout --- */
 
 export const PaymentSessionSchema = z.object({

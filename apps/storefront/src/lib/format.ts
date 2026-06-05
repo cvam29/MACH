@@ -15,3 +15,14 @@ export function formatMoney(money: Money, locale?: string): string {
     return `${money.currencyCode} ${value.toFixed(money.fractionDigits)}`;
   }
 }
+
+/** Format an ISO date string for display (e.g. "Jun 5, 2026"). */
+export function formatDate(iso: string, locale?: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
