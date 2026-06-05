@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Mach.Persistence\Mach.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Application\Mach.Application.csproj" />
+    <ProjectReference Include="..\..\src\Mach.Domain\Mach.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

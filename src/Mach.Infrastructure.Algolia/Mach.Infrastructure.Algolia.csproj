@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <PackageReference Include="Algolia.Search" />
+    <!-- Brings Options, DependencyInjection, Configuration and Logging abstractions transitively. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
   <ItemGroup>

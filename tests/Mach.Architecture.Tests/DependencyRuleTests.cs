@@ -25,28 +25,25 @@ public class DependencyRuleTests
 
     private static ArchUnitNET.Domain.Architecture LoadArchitecture()
     {
-        // Anchor types force the referenced src assemblies to load into the AppDomain.
-        var anchors = new[]
-        {
-            typeof(Domain.Result).Assembly,
-            typeof(Application.DependencyInjection).Assembly,
-            typeof(Contracts.IntegrationEvent).Assembly,
-            typeof(ServiceDefaults.MachJsonOptions).Assembly,
-            typeof(Infrastructure.Commercetools.PlaceholderMarker).Assembly,
-            typeof(Infrastructure.Contentstack.PlaceholderMarker).Assembly,
-            typeof(Infrastructure.Algolia.PlaceholderMarker).Assembly,
-            typeof(Infrastructure.Adyen.PlaceholderMarker).Assembly,
-            typeof(Infrastructure.Email.PlaceholderMarker).Assembly,
-            typeof(Infrastructure.Maps.PlaceholderMarker).Assembly,
-            typeof(Infrastructure.Messaging.PlaceholderMarker).Assembly,
-            typeof(Persistence.PlaceholderMarker).Assembly,
-        };
+        // These typed anchors guarantee the core assemblies are copied to the test output
+        // (project references whose types are touched). The full set — including the
+        // Translators (which no longer expose a placeholder anchor) and the Doors (hosts,
+        // which have no public anchor) — is then loaded from the output directory by file
+        // name, so the rules see every Mach.* assembly regardless of its public surface.
+        _ = typeof(Domain.Result);
+        _ = typeof(Application.DependencyInjection);
+        _ = typeof(Contracts.IntegrationEvent);
+        _ = typeof(ServiceDefaults.MachJsonOptions);
 
-        // Host (Door) assemblies have no public anchor type, so load them from the test
-        // output directory by file name (they are copied in as project references).
-        var assemblies = new List<ReflectionAssembly>(anchors);
-        foreach (var path in Directory.EnumerateFiles(AppContext.BaseDirectory, "Mach.*.Functions.dll"))
+        var assemblies = new List<ReflectionAssembly>();
+        foreach (var path in Directory.EnumerateFiles(AppContext.BaseDirectory, "Mach.*.dll"))
         {
+            var name = Path.GetFileNameWithoutExtension(path);
+            if (name.EndsWith(".Tests", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
             try
             {
                 assemblies.Add(ReflectionAssembly.LoadFrom(path));

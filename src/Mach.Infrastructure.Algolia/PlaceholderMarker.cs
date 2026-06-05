@@ -1,7 +1,7 @@
 namespace Mach.Infrastructure.Algolia;
 
 /// <summary>
-/// Skeleton marker for the Algolia adapter. TODO (Wave 1c: ISearchClient (Algolia)).
-/// Provides a public anchor type for assembly-loading in architecture tests.
+/// Public anchor type for assembly-loading in architecture tests. Retained alongside the
+/// real adapter so external test projects can reference a stable type in this assembly.
 /// </summary>
 public static class PlaceholderMarker;
