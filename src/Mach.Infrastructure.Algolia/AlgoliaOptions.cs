@@ -29,7 +29,7 @@ public sealed class AlgoliaOptions
     /// Optional override host(s) (scheme + host[:port]) used instead of Algolia's default DSN.
     /// Intended for testing against a mock transport; leave empty in production.
     /// </summary>
-    public IList<string> CustomHosts { get; set; } = new List<string>();
+    public IList<string> CustomHosts { get; set; } = [];
 
     /// <summary>Per-call write timeout in seconds. Defaults to 30s when unset or non-positive.</summary>
     public int WriteTimeoutSeconds { get; set; } = 30;

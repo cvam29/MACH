@@ -49,21 +49,14 @@ internal static class Http
 /// Fake payment gateway: HMAC verification and parsing are scripted so webhook flow tests stay
 /// independent of Adyen's real signature scheme.
 /// </summary>
-internal sealed class FakePaymentGateway : IPaymentGateway
+internal sealed class FakePaymentGateway(
+    bool signatureValid = true,
+    Result<IReadOnlyList<PaymentNotificationDto>>? parseResult = null) : IPaymentGateway
 {
-    private readonly bool _signatureValid;
-    private readonly Result<IReadOnlyList<PaymentNotificationDto>> _parseResult;
+    private readonly Result<IReadOnlyList<PaymentNotificationDto>> _parseResult =
+        parseResult ?? Result.Success<IReadOnlyList<PaymentNotificationDto>>([]);
 
-    public FakePaymentGateway(
-        bool signatureValid = true,
-        Result<IReadOnlyList<PaymentNotificationDto>>? parseResult = null)
-    {
-        _signatureValid = signatureValid;
-        _parseResult = parseResult
-            ?? Result.Success<IReadOnlyList<PaymentNotificationDto>>([]);
-    }
-
-    public bool VerifyWebhookSignature(string rawBody, string hmacSignature) => _signatureValid;
+    public bool VerifyWebhookSignature(string rawBody, string hmacSignature) => signatureValid;
 
     public Result<IReadOnlyList<PaymentNotificationDto>> ParseNotification(string rawBody) => _parseResult;
 

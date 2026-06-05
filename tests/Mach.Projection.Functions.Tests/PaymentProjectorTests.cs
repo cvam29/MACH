@@ -41,7 +41,7 @@ public sealed class PaymentProjectorTests
 
         await sut.ProjectAsync(Notification("order-1", success: true), CancellationToken.None);
 
-        commerce.Transitions.ShouldBe(new[] { ("order-1", OrderStatus.Paid) });
+        commerce.Transitions.ShouldBe([("order-1", OrderStatus.Paid)]);
         store.UpsertCalls.ShouldBe(1);
         store.Upserted["order-1"].Status.ShouldBe(OrderStatus.Paid);
         store.Upserted["order-1"].PaymentStatus.ShouldBe(PaymentStatus.Captured);

@@ -76,8 +76,8 @@ public sealed class AdyenWebhookFunctionsTests
         evt.Success.ShouldBeTrue();
 
         var key = AdyenWebhookFunctions.DedupKey("psp-7", "AUTHORISATION");
-        idempotency.Began.ShouldBe(new[] { key });
-        idempotency.Completed.ShouldBe(new[] { key });
+        idempotency.Began.ShouldBe([key]);
+        idempotency.Completed.ShouldBe([key]);
     }
 
     [Fact]

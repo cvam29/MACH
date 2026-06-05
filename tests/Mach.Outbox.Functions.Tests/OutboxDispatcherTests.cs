@@ -23,15 +23,15 @@ public sealed class OutboxDispatcherTests
         sent.ShouldBe(3);
 
         // Published to the right topics with the raw payload, oldest-first.
-        bus.Published.ShouldBe(new[]
-        {
+        bus.Published.ShouldBe(
+        [
             ("orders", "p1"),
             ("orders", "p2"),
             ("payments", "p3"),
-        });
+        ]);
 
         // All acknowledged, in order; none failed.
-        reader.SentIds.ShouldBe(new[] { m1.Id, m2.Id, m3.Id });
+        reader.SentIds.ShouldBe([m1.Id, m2.Id, m3.Id]);
         reader.FailedIds.ShouldBeEmpty();
     }
 
@@ -51,10 +51,10 @@ public sealed class OutboxDispatcherTests
         sent.ShouldBe(2);
 
         // The two healthy messages were published; the poison one was attempted but not acked.
-        reader.SentIds.ShouldBe(new[] { m1.Id, m3.Id });
+        reader.SentIds.ShouldBe([m1.Id, m3.Id]);
 
         // The poison message is recorded as failed with the publish error.
-        reader.FailedIds.ShouldBe(new[] { poison.Id });
+        reader.FailedIds.ShouldBe([poison.Id]);
         reader.FailedErrors.Single().ShouldContain("boom");
     }
 
@@ -78,9 +78,9 @@ public sealed class OutboxDispatcherTests
 
         public FakeOutboxReader(params OutboxMessage[] unsent) => _unsent = unsent.ToList();
 
-        public List<Guid> SentIds { get; } = new();
-        public List<Guid> FailedIds { get; } = new();
-        public List<string> FailedErrors { get; } = new();
+        public List<Guid> SentIds { get; } = [];
+        public List<Guid> FailedIds { get; } = [];
+        public List<string> FailedErrors { get; } = [];
 
         public Task<IReadOnlyList<OutboxMessage>> GetUnsentAsync(int batchSize, CancellationToken ct)
             => Task.FromResult<IReadOnlyList<OutboxMessage>>(_unsent.Take(batchSize).ToList());
@@ -105,7 +105,7 @@ public sealed class OutboxDispatcherTests
 
         public FakeMessageBus(string? failOnPayload = null) => _failOnPayload = failOnPayload;
 
-        public List<(string Topic, string Payload)> Published { get; } = new();
+        public List<(string Topic, string Payload)> Published { get; } = [];
 
         public Task PublishAsync<TMessage>(string topic, TMessage message, CancellationToken ct)
             where TMessage : notnull
