@@ -17,3 +17,4 @@ edit).
 | [0008](0008-oidc-no-long-lived-cloud-secrets-ci.md) | OIDC federation in CI/CD: no long-lived cloud secrets | Accepted |
 | [0009](0009-terraform-as-documentation.md) | Terraform as target-topology documentation (plan, not apply) | Accepted |
 | [0010](0010-opentelemetry-end-to-end-tracing.md) | OpenTelemetry for end-to-end tracing | Accepted |
+| [0011](0011-redis-cache-aside.md) | Redis cache-aside with event-driven invalidation (SQL stays source of truth) | Accepted |
