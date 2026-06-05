@@ -15,7 +15,8 @@
     "seed:algolia": "tsx algolia/seed-algolia.ts",
     "seed:contentstack": "tsx contentstack/seed-contentstack.ts",
     "seed:sql": "tsx sql/seed-fulfillment.ts",
-    "seed:all": "tsx scripts/seed-all.ts"
+    "seed:all": "tsx scripts/seed-all.ts",
+    "replay:adyen": "tsx scripts/replay-adyen-notification.ts"
   },
   "dependencies": {
     "@commercetools/platform-sdk": "^7.18.0",

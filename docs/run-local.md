@@ -99,6 +99,19 @@ npm run seed:contentstack    # content types + per-audience email templates
 
 `seed:sql` targets the same `MachDb`; set `SQL_CONNECTION_STRING` if you are not on the container default.
 
+### Firing the payment chain offline
+
+Without real Adyen, replay a signed notification so Webhooks → Projection → Notifications fires:
+
+```powershell
+cd seed
+$env:ADYEN_HMAC_KEY = "<hexKey>"   # must match Adyen:HmacKey on the Webhooks host
+npm run replay:adyen -- --order <orderId> --post   # omit --post for a dry run
+```
+
+Generate a dev key with `node -e "console.log(require('crypto').randomBytes(32).toString('hex').toUpperCase())"`
+and set the same value as `Adyen:HmacKey` in `src/Mach.Webhooks.Functions/local.settings.json`.
+
 ## Common tasks
 
 ```powershell

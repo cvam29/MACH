@@ -76,9 +76,11 @@ function Test-Tool($name) { if (-not (Get-Command $name -ErrorAction SilentlyCon
 # ----------------------------------------------------------------------------------------------
 if ($Stop) {
     Write-Step 'Stopping launched Function hosts and storefront'
-    Get-Process -Name 'func', 'node' -ErrorAction SilentlyContinue |
-        Where-Object { $_.Path -and ($_.Path -like "$repo*") } |
-        ForEach-Object { Write-Host "  stopping PID $($_.Id) ($($_.ProcessName))"; Stop-Process -Id $_.Id -Force }
+    # func/node run from their global install dirs, so match on the command line, not the image path:
+    # every host is launched by this repo's working directory, and the storefront runs `next dev`.
+    Get-CimInstance Win32_Process -Filter "Name='func.exe' OR Name='node.exe' OR Name='dotnet.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and ($_.CommandLine -like "*$repo*" -or $_.CommandLine -like '*func*start*' -or $_.CommandLine -like '*next*dev*') } |
+        ForEach-Object { Write-Host "  stopping PID $($_.ProcessId) ($($_.Name))"; Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
     if (-not $SkipInfra) {
         Write-Step 'Stopping Docker dependencies'
         docker compose -f (Join-Path $repo 'docker-compose.yml') down

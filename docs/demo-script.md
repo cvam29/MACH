@@ -89,8 +89,9 @@ Pay with an **Adyen** test card (e.g. `4212 3456 7890 1237`, any future expiry /
   `payment.notification.received` to Service Bus — **then** ACKs fast with `[accepted]`.
 - The **Projection** worker (`:7073`) consumes it, transitions the order to *Paid*, and upserts the
   `/orders/me` read model. The **Notifications** worker (`:7075`) fans out.
-- *Offline / no Adyen keys?* Run the bundled replay script to post a sample signed notification, so
-  the async chain still fires.
+- *Offline / no Adyen keys?* `cd seed && ADYEN_HMAC_KEY=<hexKey> npm run replay:adyen -- --order <orderId> --post`
+  posts a sample notification signed with the same HMAC the host verifies, so the async chain still
+  fires (the key must match `Adyen:HmacKey` on the Webhooks host).
 
 **→ Microservices + event-driven async.**
 
