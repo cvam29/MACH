@@ -24,7 +24,7 @@ public sealed class NotificationParsingTests
         });
 
         return new AdyenPaymentGateway(
-            new ThrowingCheckoutApi(),
+            new StubPaymentsService(),
             new HmacValidator(),
             options,
             NullLogger<AdyenPaymentGateway>.Instance);
@@ -137,12 +137,5 @@ public sealed class NotificationParsingTests
 
         result.IsFailure.ShouldBeTrue();
         result.Error.Code.ShouldBe("validation");
-    }
-
-    private sealed class ThrowingCheckoutApi : IAdyenCheckoutApi
-    {
-        public Task<CheckoutModels.CreateCheckoutSessionResponse> CreateSessionAsync(
-            CheckoutModels.CreateCheckoutSessionRequest request, CancellationToken ct)
-            => throw new NotSupportedException();
     }
 }

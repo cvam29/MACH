@@ -155,11 +155,11 @@ public sealed class CommercetoolsCustomerAuthTests : IDisposable
         var entry = _server.LogEntries.Last(e => e.RequestMessage!.Path == "/demo/me/login");
         var body = entry.RequestMessage!.Body ?? string.Empty;
 
-        // The login body must carry the anonymousId and request a merge of the active cart.
-        body.ShouldContain("\"anonymousId\":\"guest-7\"");
+        // The /me/login sign-in resolves the guest cart from the bearer token's anonymous session;
+        // the merge intent is expressed via the active-cart sign-in mode in the SDK request body.
         body.ShouldContain("MergeWithExistingCustomerCart");
 
-        // The merge is authenticated with the customer's bearer token.
+        // The merge is authenticated with the customer's bearer token (issued by the SDK client).
         AuthorizationHeader("/demo/me/login").ShouldBe("Bearer merge-token");
     }
 

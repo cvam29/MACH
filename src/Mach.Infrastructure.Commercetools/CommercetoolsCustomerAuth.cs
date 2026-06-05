@@ -1,4 +1,5 @@
 using commercetools.Sdk.Api.Client;
+using commercetools.Sdk.Api.Models.Customers;
 using commercetools.Sdk.Api.Models.Me;
 
 using Mach.Application.Dtos;
@@ -13,23 +14,27 @@ namespace Mach.Infrastructure.Commercetools;
 /// commercetools-backed implementation of <see cref="ICustomerAuth"/>. Token acquisition
 /// (password / anonymous / refresh) is handled by <see cref="CommercetoolsTokenClient"/> against the
 /// OAuth2 endpoints; registration uses the service-credentialed SDK request DSL, while the
-/// customer-scoped <c>/me</c> reads and the anonymous→customer cart merge go through the
-/// <see cref="CommercetoolsCustomerApiClient"/> so they carry the <em>caller's</em> bearer token.
+/// customer-scoped <c>/me</c> reads and the anonymous→customer cart merge go through a
+/// <see cref="ProjectApiRoot"/> built by <see cref="CommercetoolsCustomerApiRootFactory"/> so they
+/// carry the <em>caller's</em> bearer token — still using the SDK's request DSL and transport.
 /// </summary>
 public sealed class CommercetoolsCustomerAuth : ICustomerAuth
 {
     private readonly CommercetoolsTokenClient _tokens;
-    private readonly ProjectApiRoot _builder;
-    private readonly CommercetoolsCustomerApiClient _customerApi;
+    private readonly ProjectApiRoot _serviceRoot;
+    private readonly CommercetoolsCustomerApiRootFactory _customerRootFactory;
+    private readonly CommercetoolsMapper _mapper;
 
     internal CommercetoolsCustomerAuth(
         CommercetoolsTokenClient tokens,
-        ProjectApiRoot builder,
-        CommercetoolsCustomerApiClient customerApi)
+        ProjectApiRoot serviceRoot,
+        CommercetoolsCustomerApiRootFactory customerRootFactory,
+        CommercetoolsMapper mapper)
     {
         _tokens = tokens;
-        _builder = builder;
-        _customerApi = customerApi;
+        _serviceRoot = serviceRoot;
+        _customerRootFactory = customerRootFactory;
+        _mapper = mapper;
     }
 
     public async Task<Result<CustomerSession>> RegisterAsync(RegisterRequest request, CancellationToken ct)
@@ -44,7 +49,7 @@ public sealed class CommercetoolsCustomerAuth : ICustomerAuth
                 LastName = request.LastName,
             };
 
-            var signupResult = await _builder.Me().Signup().Post(draft).ExecuteAsync(ct);
+            var signupResult = await _serviceRoot.Me().Signup().Post(draft).ExecuteAsync(ct);
 
             // Signup creates the customer but does not mint customer tokens; perform the password
             // flow so the caller receives a usable session with the new customer's id attached.
@@ -92,11 +97,23 @@ public sealed class CommercetoolsCustomerAuth : ICustomerAuth
     public Task<Result<CustomerSession>> AnonymousSessionAsync(CancellationToken ct)
         => _tokens.AnonymousAsync(ct);
 
-    public Task<Result<CustomerDto>> GetMeAsync(string accessToken, CancellationToken ct)
-        // /me is resolved against the caller's customer bearer token, not the service client.
-        => _customerApi.GetMeAsync(accessToken, ct);
+    public async Task<Result<CustomerDto>> GetMeAsync(string accessToken, CancellationToken ct)
+    {
+        try
+        {
+            // /me is resolved against a customer-scoped ProjectApiRoot whose IClient authenticates
+            // with the caller's bearer token, so the SDK request DSL reads the signed-in customer.
+            var customerRoot = _customerRootFactory.Create(accessToken);
+            var customer = await customerRoot.Me().Get().ExecuteAsync(ct);
+            return Result.Success(_mapper.MapCustomer(customer));
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure<CustomerDto>(CommercetoolsErrorTranslator.Translate(ex));
+        }
+    }
 
-    public Task<Result> MergeAnonymousCartAsync(
+    public async Task<Result> MergeAnonymousCartAsync(
         string anonymousId, CustomerSession customerSession, CancellationToken ct)
     {
         // The customer's access token authenticates the call; /me/login folds the active
@@ -107,10 +124,29 @@ public sealed class CommercetoolsCustomerAuth : ICustomerAuth
             && customerSession.AnonymousId is not null
             && !string.Equals(anonymousId, customerSession.AnonymousId, StringComparison.Ordinal))
         {
-            return Task.FromResult(Result.Failure(Error.Validation(
-                "The supplied anonymous id does not match the customer session's anonymous id.")));
+            return Result.Failure(Error.Validation(
+                "The supplied anonymous id does not match the customer session's anonymous id."));
         }
 
-        return _customerApi.LoginAsync(customerSession.AccessToken, anonymousId, ct);
+        try
+        {
+            var customerRoot = _customerRootFactory.Create(customerSession.AccessToken);
+
+            // The /me/login sign-in merges the bearer token's anonymous-session cart into the
+            // customer's active cart. The SDK's MyCustomerSignin resolves the guest cart from the
+            // authenticated session, so the merge intent is expressed via ActiveCartSignInMode.
+            var signin = new MyCustomerSignin
+            {
+                ActiveCartSignInMode = IAnonymousCartSignInMode.MergeWithExistingCustomerCart,
+                UpdateProductData = true,
+            };
+
+            await customerRoot.Me().Login().Post(signin).ExecuteAsync(ct);
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(CommercetoolsErrorTranslator.Translate(ex));
+        }
     }
 }

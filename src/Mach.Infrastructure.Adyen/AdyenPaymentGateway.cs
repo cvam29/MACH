@@ -9,29 +9,31 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using HmacValidator = Adyen.Util.HmacValidator;
+using IPaymentsService = Adyen.Checkout.Services.IPaymentsService;
 using NotificationRequest = Adyen.Webhooks.Models.NotificationRequest;
 
 namespace Mach.Infrastructure.Adyen;
 
 /// <summary>
-/// Adyen-backed <see cref="IPaymentGateway"/>: creates Checkout payment sessions, verifies webhook
-/// HMAC signatures using Adyen's <see cref="HmacValidator"/>, and parses notifications into our
-/// normalized <see cref="PaymentNotificationDto"/> model.
+/// Adyen-backed <see cref="IPaymentGateway"/>: creates Checkout payment sessions through the Adyen
+/// .NET SDK's typed checkout <see cref="IPaymentsService"/> (its <c>Sessions</c> API), verifies
+/// webhook HMAC signatures using Adyen's <see cref="HmacValidator"/>, and parses notifications into
+/// our normalized <see cref="PaymentNotificationDto"/> model.
 /// </summary>
 internal sealed class AdyenPaymentGateway : IPaymentGateway
 {
-    private readonly IAdyenCheckoutApi _checkoutApi;
+    private readonly IPaymentsService _paymentsService;
     private readonly HmacValidator _hmacValidator;
     private readonly AdyenOptions _options;
     private readonly ILogger<AdyenPaymentGateway> _logger;
 
     public AdyenPaymentGateway(
-        IAdyenCheckoutApi checkoutApi,
+        IPaymentsService paymentsService,
         HmacValidator hmacValidator,
         IOptions<AdyenOptions> options,
         ILogger<AdyenPaymentGateway> logger)
     {
-        _checkoutApi = checkoutApi;
+        _paymentsService = paymentsService;
         _hmacValidator = hmacValidator;
         _options = options.Value;
         _logger = logger;
@@ -43,7 +45,18 @@ internal sealed class AdyenPaymentGateway : IPaymentGateway
         try
         {
             var request = AdyenMapping.BuildSessionRequest(_options, cartId, amount);
-            var response = await _checkoutApi.CreateSessionAsync(request, ct).ConfigureAwait(false);
+
+            // Drive the call through the Adyen SDK's typed checkout service (Sessions API).
+            var apiResponse = await _paymentsService
+                .SessionsAsync(request, requestOptions: null, cancellationToken: ct)
+                .ConfigureAwait(false);
+
+            if (!apiResponse.IsCreated)
+            {
+                return Error.Unexpected("Adyen did not create a checkout session (unexpected response status).");
+            }
+
+            var response = apiResponse.Created();
             return AdyenMapping.MapSessionResponse(response, cartId);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

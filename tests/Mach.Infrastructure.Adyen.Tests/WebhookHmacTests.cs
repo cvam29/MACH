@@ -33,7 +33,7 @@ public sealed class WebhookHmacTests
         });
 
         return new AdyenPaymentGateway(
-            new StubCheckoutApi(),
+            new StubPaymentsService(),
             new HmacValidator(),
             options,
             NullLogger<AdyenPaymentGateway>.Instance);
@@ -157,13 +157,5 @@ public sealed class WebhookHmacTests
     public void VerifyWebhookSignature_with_empty_body_returns_false()
     {
         BuildGateway().VerifyWebhookSignature(string.Empty, "sig").ShouldBeFalse();
-    }
-
-    /// <summary>Stub used when the test does not exercise session creation.</summary>
-    private sealed class StubCheckoutApi : IAdyenCheckoutApi
-    {
-        public Task<CheckoutModels.CreateCheckoutSessionResponse> CreateSessionAsync(
-            CheckoutModels.CreateCheckoutSessionRequest request, CancellationToken ct)
-            => throw new NotSupportedException("Session creation is not exercised in this test.");
     }
 }

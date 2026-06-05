@@ -26,10 +26,4 @@ public sealed class AdyenOptions
 
     /// <summary>The return URL Adyen redirects the shopper back to after Drop-in completes.</summary>
     public string ReturnUrl { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Optional override for the Checkout API base URL (e.g. to point integration tests at a
-    /// local WireMock server). When empty, the standard Adyen Test endpoint is used.
-    /// </summary>
-    public string? CheckoutEndpointOverride { get; set; }
 }

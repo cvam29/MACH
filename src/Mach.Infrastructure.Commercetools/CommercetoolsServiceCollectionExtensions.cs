@@ -23,8 +23,10 @@ public static class CommercetoolsServiceCollectionExtensions
     public const string TokenHttpClientName = "Commercetools.Auth";
 
     /// <summary>
-    /// The named <see cref="HttpClient"/> used for the customer-token <c>/me</c> API path, where the
-    /// caller's bearer token (not the service client-credentials token) authenticates the request.
+    /// The named <see cref="HttpClient"/> used for the customer-scoped <c>/me</c> API path. The SDK's
+    /// own <c>IClient</c> drives this HttpClient; the caller's bearer token (not the service
+    /// client-credentials token) is applied by the SDK authorization middleware via a
+    /// <see cref="CustomerAccessTokenProvider"/>.
     /// </summary>
     public const string CustomerApiHttpClientName = "Commercetools.CustomerApi";
 
@@ -66,8 +68,9 @@ public static class CommercetoolsServiceCollectionExtensions
         services.AddHttpClient(TokenHttpClientName)
             .AddStandardResilienceHandler();
 
-        // Customer-token API path for /me and /me/login, with the same resilience handler as the
-        // service path. The bearer token is set per request from the caller's access token.
+        // Customer-scoped /me and /me/login path: the SDK's IClient drives this resilient HttpClient,
+        // with the same standard resilience handler as the service path. The caller's bearer token is
+        // applied per request through a CustomerAccessTokenProvider on the SDK client.
         services.AddHttpClient(CustomerApiHttpClientName)
             .AddStandardResilienceHandler();
 
@@ -78,18 +81,21 @@ public static class CommercetoolsServiceCollectionExtensions
             return new CommercetoolsTokenClient(httpClient, sp.GetRequiredService<IOptions<CommercetoolsOptions>>());
         });
 
-        services.AddSingleton<CommercetoolsCustomerApiClient>(sp =>
-        {
-            var factory = sp.GetRequiredService<IHttpClientFactory>();
-            var httpClient = factory.CreateClient(CustomerApiHttpClientName);
-            return new CommercetoolsCustomerApiClient(httpClient, sp.GetRequiredService<IOptions<CommercetoolsOptions>>());
-        });
+        // Builds customer-scoped ProjectApiRoot instances via the SDK ClientBuilder, reusing the SDK's
+        // ISerializerService and the resilient customer HttpClient. ISerializerService is registered by
+        // UseCommercetoolsApi above.
+        services.AddSingleton<CommercetoolsCustomerApiRootFactory>(sp => new CommercetoolsCustomerApiRootFactory(
+            sp.GetRequiredService<IOptions<CommercetoolsOptions>>(),
+            sp.GetRequiredService<commercetools.Sdk.Api.Serialization.IApiSerializerService>(),
+            sp.GetRequiredService<IHttpClientFactory>()));
 
         services.AddSingleton<ICommerceClient, CommercetoolsCommerceClient>();
         services.AddSingleton<ICustomerAuth>(sp => new CommercetoolsCustomerAuth(
             sp.GetRequiredService<CommercetoolsTokenClient>(),
             sp.GetRequiredService<commercetools.Sdk.Api.Client.ProjectApiRoot>(),
-            sp.GetRequiredService<CommercetoolsCustomerApiClient>()));
+            sp.GetRequiredService<CommercetoolsCustomerApiRootFactory>(),
+            new CommercetoolsMapper(
+                sp.GetRequiredService<IOptions<CommercetoolsOptions>>().Value.DefaultLocale)));
 
         return services;
     }

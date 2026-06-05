@@ -10,9 +10,9 @@ using NotificationRequestItem = Adyen.Webhooks.Models.NotificationRequestItem;
 namespace Mach.Infrastructure.Adyen;
 
 /// <summary>
-/// Pure mapping helpers between our domain/DTO types and the Adyen Checkout/Webhook models.
-/// Isolated from any I/O so the request-building and response/notification mapping can be
-/// unit-tested directly.
+/// Pure mapping helpers between our domain/DTO types and the Adyen Checkout/Webhook models used
+/// by the Adyen .NET SDK. Isolated from any I/O so the request-building and response/notification
+/// mapping can be unit-tested directly.
 /// </summary>
 internal static class AdyenMapping
 {
@@ -42,7 +42,7 @@ internal static class AdyenMapping
 
     /// <summary>Maps an Adyen session response onto our <see cref="PaymentSessionDto"/>.</summary>
     public static Result<PaymentSessionDto> MapSessionResponse(
-        CreateCheckoutSessionResponse response, CartId cartId)
+        CreateCheckoutSessionResponse? response, CartId cartId)
     {
         if (response is null)
         {
